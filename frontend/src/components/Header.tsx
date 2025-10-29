@@ -1,10 +1,42 @@
+import { usePrivy } from '@privy-io/react-auth';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { api } from '../api/client';
 
 const Header = () => {
   const location = useLocation();
+  const { ready, authenticated, user, login, logout } = usePrivy();
+  const [balance, setBalance] = useState(1000);
+
+  useEffect(() => {
+    if (authenticated) {
+      loadBalance();
+      const interval = setInterval(loadBalance, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [authenticated]);
+
+  const loadBalance = async () => {
+    try {
+      const bal = await api.getBalance();
+      setBalance(bal);
+    } catch (error) {
+      console.error('Failed to load balance:', error);
+    }
+  };
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const getDisplayName = () => {
+    if (user?.email?.address) {
+      return user.email.address.split('@')[0];
+    }
+    if (user?.wallet?.address) {
+      return `${user.wallet.address.slice(0, 6)}...${user.wallet.address.slice(-4)}`;
+    }
+    return 'User';
   };
 
   return (
@@ -45,14 +77,35 @@ const Header = () => {
             </Link>
           </nav>
 
-          {/* Wallet (Mock) */}
+          {/* Wallet */}
           <div className="flex items-center space-x-3">
-            <div className="text-sm text-gray-600">
-              Balance: <span className="font-semibold text-gray-900">1,000</span> tokens
-            </div>
-            <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-sm">
-              Connected
-            </button>
+            {authenticated && (
+              <div className="text-sm text-gray-600">
+                Balance: <span className="font-semibold text-gray-900">{balance.toLocaleString()}</span> tokens
+              </div>
+            )}
+            {!ready ? (
+              <div className="px-4 py-2 bg-gray-200 text-gray-500 rounded-lg font-medium">
+                Loading...
+              </div>
+            ) : authenticated ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-700">👋 {getDisplayName()}</span>
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-sm"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={login}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-sm"
+              >
+                Connect Wallet
+              </button>
+            )}
           </div>
         </div>
       </div>

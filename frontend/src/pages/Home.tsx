@@ -1,15 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../api/client';
 import MarketCard from '../components/MarketCard';
-import { mockMarkets } from '../data/mockMarkets';
-import type { MarketCategory, MarketStatus } from '../types';
+import type { Market, MarketCategory, MarketStatus } from '../types';
 
 const Home = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<MarketStatus | 'All'>('All');
   const [categoryFilter, setCategoryFilter] = useState<MarketCategory | 'All'>('All');
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredMarkets = mockMarkets.filter((market) => {
+  useEffect(() => {
+    loadMarkets();
+  }, []);
+
+  const loadMarkets = async () => {
+    try {
+      const data = await api.getMarkets();
+      setMarkets(data);
+    } catch (error) {
+      console.error('Failed to load markets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredMarkets = markets.filter((market) => {
     if (statusFilter !== 'All' && market.status !== statusFilter) return false;
     if (categoryFilter !== 'All' && market.category !== categoryFilter) return false;
     return true;
@@ -81,24 +98,28 @@ const Home = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Total Markets</div>
-            <div className="text-3xl font-bold text-gray-900">{mockMarkets.length}</div>
+            <div className="text-3xl font-bold text-gray-900">{markets.length}</div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Active Markets</div>
             <div className="text-3xl font-bold text-green-600">
-              {mockMarkets.filter((m) => m.status === 'Active').length}
+              {markets.filter((m) => m.status === 'Active').length}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Total Volume</div>
             <div className="text-3xl font-bold text-blue-600">
-              {mockMarkets.reduce((sum, m) => sum + m.yesPool + m.noPool, 0).toLocaleString()}
+              {markets.reduce((sum, m) => sum + m.yesPool + m.noPool, 0).toLocaleString()}
             </div>
           </div>
         </div>
 
         {/* Markets Grid */}
-        {filteredMarkets.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="text-gray-600">Loading markets...</div>
+          </div>
+        ) : filteredMarkets.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
             <div className="text-gray-400 text-6xl mb-4">📊</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No markets found</h3>

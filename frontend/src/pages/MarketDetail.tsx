@@ -1,18 +1,47 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { mockMarkets, mockUserPositions } from '../data/mockMarkets';
-import type { Outcome } from '../types';
+import { api } from '../api/client';
+import type { Market, Outcome, UserPosition } from '../types';
 import { calculateOdds, calculatePotentialPayout, formatAmount, formatPercentage, getTimeRemaining } from '../utils/calculations';
 
 const MarketDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const market = mockMarkets.find((m) => m.id === parseInt(id || '0'));
-  const userPosition = mockUserPositions.find((p) => p.marketId === parseInt(id || '0'));
-
+  const [market, setMarket] = useState<Market | null>(null);
+  const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
+  const [loading, setLoading] = useState(true);
   const [betAmount, setBetAmount] = useState<string>('');
   const [selectedOutcome, setSelectedOutcome] = useState<Outcome>('Yes');
   const [showBetModal, setShowBetModal] = useState(false);
+  const [placing, setPlacing] = useState(false);
+
+  useEffect(() => {
+    loadMarket();
+  }, [id]);
+
+  const loadMarket = async () => {
+    try {
+      const marketId = parseInt(id || '0');
+      const [marketData, positions] = await Promise.all([
+        api.getMarket(marketId),
+        api.getPositions(),
+      ]);
+      setMarket(marketData);
+      setUserPosition(positions.find((p: any) => p.marketId === marketId) || null);
+    } catch (error) {
+      console.error('Failed to load market:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading market...</div>
+      </div>
+    );
+  }
 
   if (!market) {
     return (
@@ -39,14 +68,31 @@ const MarketDetail = () => {
     : 0;
   const potentialProfit = potentialPayout - parseFloat(betAmount || '0');
 
-  const handlePlaceBet = () => {
-    alert(`Bet placed! ${betAmount} tokens on ${selectedOutcome}`);
-    setShowBetModal(false);
-    setBetAmount('');
+  const handlePlaceBet = async () => {
+    if (!market) return;
+    setPlacing(true);
+    try {
+      await api.placeBet(market.id, selectedOutcome, parseFloat(betAmount));
+      alert(`✅ Bet placed! ${betAmount} tokens on ${selectedOutcome}`);
+      setShowBetModal(false);
+      setBetAmount('');
+      await loadMarket(); // Reload to see updated odds
+    } catch (error: any) {
+      alert(`❌ Failed to place bet: ${error.message}`);
+    } finally {
+      setPlacing(false);
+    }
   };
 
-  const handleClaimWinnings = () => {
-    alert('Winnings claimed!');
+  const handleClaimWinnings = async () => {
+    if (!market) return;
+    try {
+      const result = await api.claimWinnings(market.id);
+      alert(`✅ Claimed ${result.payout} tokens!`);
+      await loadMarket();
+    } catch (error: any) {
+      alert(`❌ Failed to claim: ${error.message}`);
+    }
   };
 
   return (
@@ -205,10 +251,10 @@ const MarketDetail = () => {
             {/* Submit Button */}
             <button
               onClick={handlePlaceBet}
-              disabled={!betAmount || parseFloat(betAmount) <= 0}
+              disabled={!betAmount || parseFloat(betAmount) <= 0 || placing}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              Confirm Bet
+              {placing ? 'Placing Bet...' : 'Confirm Bet'}
             </button>
           </div>
         )}

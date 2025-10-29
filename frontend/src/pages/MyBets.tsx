@@ -1,14 +1,50 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockMarkets, mockUserPositions } from '../data/mockMarkets';
+import { api } from '../api/client';
+import type { Market, UserPosition } from '../types';
 import { calculateOdds, formatAmount, formatPercentage } from '../utils/calculations';
 
 const MyBets = () => {
   const navigate = useNavigate();
+  const [userMarketsWithPositions, setUserMarketsWithPositions] = useState<Array<{market: Market, position: UserPosition}>>([]);
+  const [loading, setLoading] = useState(true);
 
-  const userMarketsWithPositions = mockUserPositions.map((position) => {
-    const market = mockMarkets.find((m) => m.id === position.marketId);
-    return { market, position };
-  }).filter((item) => item.market !== undefined);
+  useEffect(() => {
+    loadPositions();
+  }, []);
+
+  const loadPositions = async () => {
+    try {
+      const [markets, positions] = await Promise.all([
+        api.getMarkets(),
+        api.getPositions(),
+      ]);
+      
+      const withMarkets = positions.map((position: UserPosition) => {
+        const market = markets.find((m: Market) => m.id === position.marketId);
+        return { market, position };
+      }).filter((item: any) => item.market !== undefined);
+      
+      setUserMarketsWithPositions(withMarkets);
+    } catch (error) {
+      console.error('Failed to load positions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-8">My Bets</h1>
+          <div className="text-center py-12">
+            <div className="text-gray-600">Loading your bets...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (userMarketsWithPositions.length === 0) {
     return (
@@ -38,7 +74,7 @@ const MyBets = () => {
         <p className="text-lg text-gray-600 mb-8">Track your active positions and claim winnings</p>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Total Positions</div>
             <div className="text-3xl font-bold text-gray-900">
@@ -49,7 +85,8 @@ const MyBets = () => {
             <div className="text-sm text-gray-600 mb-1">Total Invested</div>
             <div className="text-3xl font-bold text-blue-600">
               {formatAmount(
-                mockUserPositions.reduce((sum, p) => sum + p.yesAmount + p.noAmount, 0)
+                userMarketsWithPositions.reduce((sum, item) => 
+                  sum + item.position.yesAmount + item.position.noAmount, 0)
               )}
             </div>
           </div>
@@ -57,7 +94,7 @@ const MyBets = () => {
             <div className="text-sm text-gray-600 mb-1">Claimable</div>
             <div className="text-3xl font-bold text-green-600">
               {userMarketsWithPositions.filter(
-                (item) => item.market!.status === 'Resolved' && !item.position.claimed
+                (item) => item.market.status === 'Resolved' && !item.position.claimed
               ).length}
             </div>
           </div>
@@ -66,8 +103,6 @@ const MyBets = () => {
         {/* Positions List */}
         <div className="space-y-4">
           {userMarketsWithPositions.map(({ market, position }) => {
-            if (!market) return null;
-
             const { yesOdds, noOdds } = calculateOdds(market);
             const totalInvested = position.yesAmount + position.noAmount;
 
@@ -156,9 +191,15 @@ const MyBets = () => {
                   <div className="flex items-center justify-center">
                     {market.status === 'Resolved' && !position.claimed ? (
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          alert('Winnings claimed!');
+                          try {
+                            const result = await api.claimWinnings(market.id);
+                            alert(`✅ Claimed ${result.payout} tokens!`);
+                            await loadPositions();
+                          } catch (error: any) {
+                            alert(`❌ ${error.message}`);
+                          }
                         }}
                         className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
                       >
