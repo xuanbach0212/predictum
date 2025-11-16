@@ -40,7 +40,7 @@ const MarketCard = ({ market, onClick }: MarketCardProps) => {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer p-6 border border-gray-200"
+      className="bg-white rounded-lg shadow-md cursor-pointer p-6 border border-gray-200 card-hover animate-slide-up"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">

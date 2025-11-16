@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import confetti from 'canvas-confetti';
 import { api } from '../api/client';
 import type { Market, Outcome, UserPosition } from '../types';
 import { calculateOdds, calculatePotentialPayout, formatAmount, formatPercentage, getTimeRemaining } from '../utils/calculations';
@@ -71,14 +73,21 @@ const MarketDetail = () => {
   const handlePlaceBet = async () => {
     if (!market) return;
     setPlacing(true);
+    
+    const loadingToast = toast.loading('Placing your bet...');
+    
     try {
       await api.placeBet(market.id, selectedOutcome, parseFloat(betAmount));
-      alert(`✅ Bet placed! ${betAmount} tokens on ${selectedOutcome}`);
+      toast.success(`Bet placed! ${betAmount} tokens on ${selectedOutcome}`, {
+        id: loadingToast,
+      });
       setShowBetModal(false);
       setBetAmount('');
       await loadMarket(); // Reload to see updated odds
     } catch (error: any) {
-      alert(`❌ Failed to place bet: ${error.message}`);
+      toast.error(`Failed to place bet: ${error.message}`, {
+        id: loadingToast,
+      });
     } finally {
       setPlacing(false);
     }
@@ -86,12 +95,29 @@ const MarketDetail = () => {
 
   const handleClaimWinnings = async () => {
     if (!market) return;
+    
+    const loadingToast = toast.loading('Claiming your winnings...');
+    
     try {
       const result = await api.claimWinnings(market.id);
-      alert(`✅ Claimed ${result.payout} tokens!`);
+      
+      // Trigger confetti animation
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      
+      toast.success(`Claimed ${result.payout} tokens!`, {
+        id: loadingToast,
+        duration: 5000,
+      });
+      
       await loadMarket();
     } catch (error: any) {
-      alert(`❌ Failed to claim: ${error.message}`);
+      toast.error(`Failed to claim: ${error.message}`, {
+        id: loadingToast,
+      });
     }
   };
 

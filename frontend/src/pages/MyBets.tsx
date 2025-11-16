@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import confetti from 'canvas-confetti';
 import { api } from '../api/client';
 import type { Market, UserPosition } from '../types';
 import { calculateOdds, formatAmount, formatPercentage } from '../utils/calculations';
@@ -190,21 +192,36 @@ const MyBets = () => {
                   {/* Action */}
                   <div className="flex items-center justify-center">
                     {market.status === 'Resolved' && !position.claimed ? (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const result = await api.claimWinnings(market.id);
-                            alert(`✅ Claimed ${result.payout} tokens!`);
-                            await loadPositions();
-                          } catch (error: any) {
-                            alert(`❌ ${error.message}`);
-                          }
-                        }}
-                        className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
-                      >
-                        Claim Winnings
-                      </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const loadingToast = toast.loading('Claiming winnings...');
+                            try {
+                              const result = await api.claimWinnings(market.id);
+                              
+                              // Trigger confetti
+                              confetti({
+                                particleCount: 100,
+                                spread: 70,
+                                origin: { y: 0.6 }
+                              });
+                              
+                              toast.success(`Claimed ${result.payout} tokens!`, {
+                                id: loadingToast,
+                                duration: 5000,
+                              });
+                              
+                              await loadPositions();
+                            } catch (error: any) {
+                              toast.error(error.message, {
+                                id: loadingToast,
+                              });
+                            }
+                          }}
+                          className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors btn-scale animate-pulse-slow"
+                        >
+                          Claim Winnings
+                        </button>
                     ) : market.status === 'Active' ? (
                       <button
                         onClick={(e) => {

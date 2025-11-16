@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import MarketCard from '../components/MarketCard';
+import SkeletonCard from '../components/SkeletonCard';
 import type { Market, MarketCategory, MarketStatus } from '../types';
 
 const Home = () => {
@@ -114,12 +115,14 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Markets Grid */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="text-gray-600">Loading markets...</div>
-          </div>
-        ) : filteredMarkets.length === 0 ? (
+            {/* Markets Grid */}
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            ) : filteredMarkets.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
             <div className="text-gray-400 text-6xl mb-4">📊</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No markets found</h3>
