@@ -1,0 +1,19 @@
+# Linera Testnet Conway Configuration
+
+## Chain Information
+CHAIN_ID=8fd4233c5d03554f87d47a711cf70619727ca3d148353446cab81fb56922c9b7
+
+## Faucet
+FAUCET_URL=https://faucet.testnet-conway.linera.net
+
+## Wallet Location
+WALLET_DIR=/Users/s29815/Library/Application Support/linera
+
+## Notes
+- Wallet initialized: 2025-11-17
+- Next Block Height: 48
+- Testnet: Conway (v0.15.5)
+
+## Request Tokens
+To get testnet tokens, user needs to visit the faucet and provide the chain ID above.
+

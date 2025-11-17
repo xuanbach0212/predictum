@@ -2,6 +2,11 @@
 
 > **⚡ Bet Fast. Settle Instantly. Win Real-Time.**
 
+[![Linera](https://img.shields.io/badge/Linera-0.15.5-blue)](https://linera.dev)
+[![Go](https://img.shields.io/badge/Go-1.21-00ADD8)](https://golang.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB)](https://reactjs.org)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 ## 📖 About
 
 Predictum is a next-generation betting platform that leverages Linera's low-latency microchains to enable **instant market updates and real-time settlements**. Unlike traditional prediction markets that suffer from slow block times and delayed finality, our platform processes bets, updates odds, and settles positions in milliseconds.
