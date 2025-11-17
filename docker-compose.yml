@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: predictum-postgres
+    environment:
+      POSTGRES_DB: predictum
+      POSTGRES_USER: predictum
+      POSTGRES_PASSWORD: predictum123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U predictum"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - predictum-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: predictum-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://predictum:predictum123@postgres:5432/predictum?sslmode=disable
+      LINERA_ENABLED: "true"
+      LINERA_ENDPOINT: http://host.docker.internal:8080
+      ORACLE_ENABLED: "true"
+      ORACLE_CREATE_INTERVAL: 30s
+      ORACLE_RESOLVE_INTERVAL: 5m
+    ports:
+      - "3001:3001"
+    networks:
+      - predictum-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: predictum-frontend
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:3001/api
+      VITE_PRIVY_APP_ID: ${VITE_PRIVY_APP_ID}
+    ports:
+      - "5173:5173"
+    networks:
+      - predictum-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  predictum-network:
+    driver: bridge
+
