@@ -304,3 +304,26 @@ This is a hackathon project, but contributions and suggestions are welcome!
 ---
 
 Built with ⚡ on Linera for the Linera Buildathon
+
+---
+
+## 🔗 Linera Blockchain Proof
+
+**Quick Verification** (one-liner):
+```bash
+curl -s -X POST http://localhost:8080/chains/10c453e40426ef2bdbe6d9ddf0164c04e24fbb9d5695c26f65df24c5d852d9f0/applications/3910a3b9f7f92fb9c47d9d460a26b4d7819c0a7f01a9cefbe5f575c4e74b6a76 -H "Content-Type: application/json" -d '{"query": "{ marketCount }"}' | jq
+```
+
+**Full Demo**:
+```bash
+./demo_linera_proof.sh
+```
+
+**Documentation**: See [LINERA_PROOF.md](./LINERA_PROOF.md)
+
+### Contract Details
+- **Chain ID**: `10c453e40426ef2bdbe6d9ddf0164c04e24fbb9d5695c26f65df24c5d852d9f0`
+- **App ID**: `3910a3b9f7f92fb9c47d9d460a26b4d7819c0a7f01a9cefbe5f575c4e74b6a76`
+- **Status**: ✅ Deployed & Operational
+- **Network**: Linera Testnet Conway
+

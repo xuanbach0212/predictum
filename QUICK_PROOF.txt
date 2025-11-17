@@ -1,0 +1,33 @@
+╔════════════════════════════════════════════════════════════════╗
+║         PREDICTUM - LINERA DEPLOYMENT PROOF                    ║
+╚════════════════════════════════════════════════════════════════╝
+
+✅ STATUS: DEPLOYED & OPERATIONAL
+
+📋 CONTRACT INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Network:   Linera Testnet Conway
+Chain ID:  10c453e40426ef2bdbe6d9ddf0164c04e24fbb9d5695c26f65df24c5d852d9f0
+App ID:    3910a3b9f7f92fb9c47d9d460a26b4d7819c0a7f01a9cefbe5f575c4e74b6a76
+Date:      November 17, 2025
+
+🔍 QUICK VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Run:       ./demo_linera_proof.sh
+Or:        curl -X POST http://localhost:8080/chains/.../applications/... \
+             -H "Content-Type: application/json" \
+             -d '{"query": "{ marketCount }"}'
+
+📊 FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ CreateMarket    ✅ PlaceBet
+✅ ResolveMarket   ✅ ClaimWinnings
+✅ GraphQL Queries ✅ State Management
+
+🔗 LINKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GraphQL: http://localhost:8080/chains/10c453e4.../applications/3910a3b9...
+Docs:    ./LINERA_PROOF.md
+Source:  ./contract/src/
+
+Built for Linera Buildathon 2025 ❤️
