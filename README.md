@@ -27,27 +27,35 @@ A simplified version of platforms like Polymarket, focusing on sports betting an
 
 - **Real-time Betting**: Instant bet placement with immediate odds updates
 - **Multiple Event Types**: Sports matches, crypto prices, and custom binary events
-- **Automated Oracle**: Go-based oracle service that fetches results from external APIs
+- **Automated Oracle**: Go-based oracle service that fetches real-time prices from CoinGecko API
 - **AMM-style Odds**: Dynamic odds calculation based on pool ratios
-- **Simple UI**: Clean, minimal interface for creating and participating in markets
+- **Hybrid Architecture**: PostgreSQL for speed + Linera blockchain for immutable verification
+- **Polished UI**: Modern, responsive interface with mobile support and smooth animations
+- **Linera Integration**: Real-time on-chain sync status and blockchain verification
+- **Pagination**: Efficient browsing of large market collections
 
 ## 🏗️ Architecture
 
 ```
-┌───────────────────────────────┐
-│           FRONTEND            │
-│ React / Vite / TypeScript     │
-│ - Browse markets (sorted)     │
-│ - Place bets (YES/NO)         │
-│ - Track positions             │
-│ - Privy wallet integration    │
-└──────────────┬────────────────┘
-               │ REST API
+┌───────────────────────────────────────────┐
+│              FRONTEND                     │
+│ React / Vite / TypeScript / TailwindCSS   │
+│ - Browse markets (paginated, sorted)     │
+│ - Place bets (YES/NO)                     │
+│ - Track positions                         │
+│ - Privy wallet integration                │
+│ - Linera status indicator                 │
+│ - On-chain data verification              │
+│ - Mobile responsive design                │
+│ - Error boundaries & toast notifications  │
+└──────────────┬────────────────────────────┘
+               │ REST API + GraphQL
                ▼
-┌────────────────────────────────────┐
-│       GO BACKEND API               │
-│ - 8 REST endpoints                 │
-│ - PostgreSQL storage               │
+┌────────────────────────────────────────────┐
+│         GO BACKEND API                     │
+│ - 8 REST endpoints                         │
+│ - PostgreSQL storage (primary)             │
+│ - Linera GraphQL client (optional sync)    │
 │ - Automated oracle service         │
 │ - Hybrid Linera sync (optional)    │
 └──────┬─────────────────────┬───────┘
