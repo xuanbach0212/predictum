@@ -140,7 +140,7 @@ func (o *Oracle) createMarketFromRealData() {
 
 // generateCryptoMarket generates a prediction market based on real crypto data
 func (o *Oracle) generateCryptoMarket(coin CoinPrice) *models.Market {
-	now := time.Now()
+	now := time.Now().UTC() // Use UTC to avoid timezone issues
 
 	// Market types with different timeframes
 	marketTypes := []struct {
@@ -230,7 +230,7 @@ func (o *Oracle) generateCryptoMarket(coin CoinPrice) *models.Market {
 
 // createRandomMarket creates a new prediction market with realistic future dates
 func (o *Oracle) createRandomMarket() {
-	now := time.Now()
+	now := time.Now().UTC() // Use UTC to avoid timezone issues
 
 	// Market templates with realistic future dates (30+ templates)
 	templates := []struct {

@@ -26,7 +26,7 @@ func (s *PostgresStorage) GetMarkets() ([]*models.Market, error) {
 		SELECT id, question, category, status, end_time, yes_pool, no_pool,
 		       total_yes_shares, total_no_shares, winning_outcome, created_at
 		FROM markets
-		ORDER BY created_at DESC
+		ORDER BY end_time ASC
 	`
 
 	rows, err := s.db.Query(query)
