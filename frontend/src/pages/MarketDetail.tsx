@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { api } from '../api/client';
+import LineraDataCard from '../components/LineraDataCard';
 import type { Market, Outcome, UserPosition } from '../types';
 import { calculateOdds, calculatePotentialPayout, formatAmount, formatPercentage, getTimeRemaining } from '../utils/calculations';
 
@@ -318,6 +319,9 @@ const MarketDetail = () => {
             )}
           </div>
         )}
+
+        {/* Linera On-Chain Data */}
+        <LineraDataCard marketId={market.id} postgresMarket={market} />
       </div>
     </div>
   );

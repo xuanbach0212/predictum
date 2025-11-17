@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { api } from '../api/client';
 import MarketCard from '../components/MarketCard';
 import SkeletonCard from '../components/SkeletonCard';
@@ -34,6 +35,7 @@ const Home = () => {
       setTotalMarkets(pagination.total);
     } catch (error) {
       console.error('Failed to load markets:', error);
+      toast.error('Failed to load markets. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -122,8 +124,8 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" id="markets-section">
 
         {/* Filters & Sort */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 border border-gray-200">
+          <div className="grid grid-cols-1 gap-6">
             {/* Status Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -134,7 +136,7 @@ const Home = () => {
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status as MarketStatus | 'All')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                       statusFilter === status
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -156,7 +158,7 @@ const Home = () => {
                   <button
                     key={category}
                     onClick={() => setCategoryFilter(category as MarketCategory | 'All')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                       categoryFilter === category
                         ? 'bg-purple-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -177,7 +179,7 @@ const Home = () => {
                 id="sortBy"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="block w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="block w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-h-[44px]"
               >
                 <option value="newest">🆕 Newest First</option>
                 <option value="ending-soon">⏰ Ending Soon</option>
@@ -189,12 +191,12 @@ const Home = () => {
         </div>
 
         {/* Section Title */}
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
               Live Markets
             </h2>
-            <p className="text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600">
               Showing {((currentPage - 1) * marketsPerPage) + 1}-{Math.min(currentPage * marketsPerPage, totalMarkets)} of {totalMarkets} markets
             </p>
           </div>
@@ -234,99 +236,119 @@ const Home = () => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="mt-8 flex justify-center items-center gap-2">
-                {/* Previous Button */}
-                <button
-                  onClick={() => {
-                    setCurrentPage(currentPage - 1);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  disabled={currentPage === 1}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    currentPage === 1
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white text-blue-600 hover:bg-blue-50 border border-blue-600'
-                  }`}
-                >
-                  ← Previous
-                </button>
+              <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-2">
+                {loading && (
+                  <div className="text-sm text-gray-600 sm:mr-4 mb-2 sm:mb-0">
+                    Loading...
+                  </div>
+                )}
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => {
+                      setCurrentPage(currentPage - 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={currentPage === 1 || loading}
+                    className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm min-h-[44px] ${
+                      currentPage === 1 || loading
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white text-blue-600 hover:bg-blue-50 border border-blue-600'
+                    }`}
+                  >
+                    ← Previous
+                  </button>
 
-                {/* Page Numbers */}
-                <div className="flex gap-2">
-                  {/* First page */}
-                  {currentPage > 3 && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setCurrentPage(1);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="px-4 py-2 rounded-lg font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-                      >
-                        1
-                      </button>
-                      {currentPage > 4 && <span className="px-2 py-2 text-gray-400">...</span>}
-                    </>
-                  )}
+                  {/* Page Numbers */}
+                  <div className="flex gap-1 sm:gap-2">
+                    {/* First page */}
+                    {currentPage > 3 && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setCurrentPage(1);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          disabled={loading}
+                          className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm min-h-[44px] ${
+                            loading
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                          }`}
+                        >
+                          1
+                        </button>
+                        {currentPage > 4 && <span className="px-1 sm:px-2 py-2 text-gray-400 text-sm">...</span>}
+                      </>
+                    )}
 
-                  {/* Current page and neighbors */}
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => {
-                      return page === currentPage || 
-                             page === currentPage - 1 || 
-                             page === currentPage + 1 ||
-                             (currentPage <= 2 && page <= 3) ||
-                             (currentPage >= totalPages - 1 && page >= totalPages - 2);
-                    })
-                    .map(page => (
-                      <button
-                        key={page}
-                        onClick={() => {
-                          setCurrentPage(page);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                          page === currentPage
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                    {/* Current page and neighbors */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => {
+                        return page === currentPage || 
+                               page === currentPage - 1 || 
+                               page === currentPage + 1 ||
+                               (currentPage <= 2 && page <= 3) ||
+                               (currentPage >= totalPages - 1 && page >= totalPages - 2);
+                      })
+                      .map(page => (
+                        <button
+                          key={page}
+                          onClick={() => {
+                            setCurrentPage(page);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          disabled={loading}
+                          className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm min-h-[44px] ${
+                            page === currentPage
+                              ? 'bg-blue-600 text-white'
+                              : loading
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
 
-                  {/* Last page */}
-                  {currentPage < totalPages - 2 && (
-                    <>
-                      {currentPage < totalPages - 3 && <span className="px-2 py-2 text-gray-400">...</span>}
-                      <button
-                        onClick={() => {
-                          setCurrentPage(totalPages);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="px-4 py-2 rounded-lg font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-                      >
-                        {totalPages}
-                      </button>
-                    </>
-                  )}
+                    {/* Last page */}
+                    {currentPage < totalPages - 2 && (
+                      <>
+                        {currentPage < totalPages - 3 && <span className="px-1 sm:px-2 py-2 text-gray-400 text-sm">...</span>}
+                        <button
+                          onClick={() => {
+                            setCurrentPage(totalPages);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          disabled={loading}
+                          className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm min-h-[44px] ${
+                            loading
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                          }`}
+                        >
+                          {totalPages}
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => {
+                      setCurrentPage(currentPage + 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={currentPage === totalPages || loading}
+                    className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm min-h-[44px] ${
+                      currentPage === totalPages || loading
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white text-blue-600 hover:bg-blue-50 border border-blue-600'
+                    }`}
+                  >
+                    Next →
+                  </button>
                 </div>
-
-                {/* Next Button */}
-                <button
-                  onClick={() => {
-                    setCurrentPage(currentPage + 1);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  disabled={currentPage === totalPages}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    currentPage === totalPages
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white text-blue-600 hover:bg-blue-50 border border-blue-600'
-                  }`}
-                >
-                  Next →
-                </button>
               </div>
             )}
           </>
