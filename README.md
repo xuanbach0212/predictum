@@ -36,35 +36,40 @@ A simplified version of platforms like Polymarket, focusing on sports betting an
 ```
 ┌───────────────────────────────┐
 │           FRONTEND            │
-│ React / Vite (UI)             │
-│ - Create / Join markets       │
-│ - Display odds & payouts      │
-│ - Real-time updates (GraphQL) │
+│ React / Vite / TypeScript     │
+│ - Browse markets (sorted)     │
+│ - Place bets (YES/NO)         │
+│ - Track positions             │
+│ - Privy wallet integration    │
 └──────────────┬────────────────┘
-               │
+               │ REST API
                ▼
 ┌────────────────────────────────────┐
-│       LINERA SMART CONTRACT        │
-│ (Rust on Linera)                   │
-│ - Store market state (yes/no pool) │
-│ - Manage bets, payout logic        │
-│ - Connect to oracle feed           │
-└──────────────┬─────────────────────┘
-               │
-               ▼
-┌────────────────────────────────────┐
-│        ORACLE SERVICE (Go)         │
-│ - Fetch data from APIs             │
-│ - Push results to contract         │
-│ - Run periodically (cron/event)    │
-└────────────────────────────────────┘
-               │
-               ▼
-    ┌────────────────────────┐
-    │  External Data Sources │
-    │ - Sports APIs          │
-    │ - CoinGecko API        │
-    └────────────────────────┘
+│       GO BACKEND API               │
+│ - 8 REST endpoints                 │
+│ - PostgreSQL storage               │
+│ - Automated oracle service         │
+│ - Hybrid Linera sync (optional)    │
+└──────┬─────────────────────┬───────┘
+       │                     │
+       ▼                     ▼
+┌──────────────┐    ┌─────────────────┐
+│  PostgreSQL  │    │ LINERA CONTRACT │
+│  Database    │    │ (Rust/WASM)     │
+│ - Markets    │    │ - On-chain      │
+│ - Positions  │    │   verification  │
+│ - Balance    │    │ - GraphQL API   │
+└──────────────┘    └─────────────────┘
+       ▲
+       │
+┌──────────────────┐
+│  Oracle Service  │
+│ - Auto-create    │
+│   markets (30s)  │
+│ - Auto-resolve   │
+│   expired (5m)   │
+│ - 35+ templates  │
+└──────────────────┘
 ```
 
 ## 📁 Project Structure
@@ -223,11 +228,11 @@ User bets 100 tokens on YES:
 
 ## 🛠️ Technology Stack
 
-- **Smart Contract**: Rust on Linera
-- **Oracle Service**: Go with external API clients
-- **Frontend**: React + Vite + TailwindCSS
-- **Blockchain**: Linera microchains
-- **Data Sources**: Sports APIs, CoinGecko
+- **Frontend**: React 19 + TypeScript + Vite + TailwindCSS + Privy
+- **Backend**: Go 1.21+ + PostgreSQL 15 + Gorilla Mux
+- **Smart Contract**: Rust 1.86.0 on Linera (deployed to Testnet Conway)
+- **Oracle Service**: Integrated in Go backend (auto-create & resolve)
+- **DevOps**: Docker Compose + Health checks
 
 ## 📚 Documentation
 
@@ -250,11 +255,13 @@ This project is built for the Linera Buildathon, focusing on:
 
 - [x] Project planning and architecture
 - [x] Documentation and specifications
-- [ ] Smart contract development
-- [ ] Oracle service implementation
-- [ ] Frontend development
-- [ ] Local testing
-- [ ] Testnet deployment
+- [x] Smart contract development and deployment (Testnet Conway)
+- [x] Oracle service implementation (auto-create & resolve)
+- [x] Frontend development (React + TypeScript)
+- [x] PostgreSQL database integration
+- [x] Hybrid Linera sync architecture
+- [x] Local testing with PostgreSQL
+- [x] Backend compilation verified
 
 ## 🔮 Future Enhancements
 

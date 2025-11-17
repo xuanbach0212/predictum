@@ -4,15 +4,20 @@
 
 ## What it does
 
-A real-time prediction market platform where users can:
+Predictum is a real-time prediction market platform where users can:
 
-- Browse 6 demo markets (NBA, Premier League, crypto prices) with live odds
+- Browse live markets (Sports, Crypto, Binary events) with dynamic odds sorted by end time
 - Place YES/NO bets with instant confirmation and real-time payout preview
-- Track all active positions with profit/loss calculations
-- Claim winnings after markets resolve
+- Track all active positions with profit/loss calculations in a dedicated dashboard
+- Claim winnings automatically after markets resolve
 - Connect via email, MetaMask, or Google (Privy wallet integration)
 
-The platform uses an AMM algorithm to calculate fair odds based on betting pool ratios. All markets update in real-time as users place bets.
+The platform features:
+- **Automated Oracle**: Creates new markets every 30 seconds from 35+ realistic templates
+- **Auto-Resolution**: Resolves expired markets every 5 minutes with random outcomes (demo)
+- **PostgreSQL Persistence**: All bets and markets are stored in a relational database
+- **Hybrid Architecture**: PostgreSQL for fast reads, optional Linera sync for on-chain verification
+- **AMM Algorithm**: Dynamic odds calculation based on betting pool ratios
 
 ## The problem it solves
 
@@ -69,9 +74,11 @@ This enables new use cases: live in-play betting, micro-markets resolving in min
 
 **Backend:**
 - Go 1.21+
-- Gorilla Mux
+- PostgreSQL 15 (persistent storage)
+- Gorilla Mux (REST API)
 - CORS middleware
-- In-memory storage (demo)
+- Automated Oracle Service (market creation & resolution)
+- Hybrid sync to Linera contract (optional)
 
 **Linera Integration:**
 - Linera Protocol (Testnet Conway)
@@ -86,9 +93,10 @@ This enables new use cases: live in-play betting, micro-markets resolving in min
   - Service: `5ace2f7763e4d3af6d2a83d160bebcb7e7309e4c22acc1e5b132fe600c6da1b5`
 
 **DevOps:**
-- Docker & Docker Compose
+- Docker & Docker Compose (PostgreSQL + Backend + Frontend)
 - Multi-stage builds
 - Health checks & monitoring
+- Database migrations on startup
 
 ## How we built it
 
@@ -100,11 +108,25 @@ This enables new use cases: live in-play betting, micro-markets resolving in min
 - Built React app with TypeScript and TailwindCSS
 - Created 3 main pages: market listing, betting interface, and position tracking
 - Implemented AMM algorithm for odds calculation and payout preview
+- Added sorting options: newest, ending soon, popular, alphabetical (default: ending soon)
 
-**Backend API**
-- Developed Go REST API with 7 endpoints
-- Built in-memory storage with 6 demo markets
-- Implemented betting logic and automatic payout calculations
+**Backend & Database**
+- Developed Go REST API with 8 endpoints
+- Implemented PostgreSQL storage layer with 3 tables: markets, positions, balance
+- Created database schema with indexes for performance
+- Automatic initialization of 6 default markets on first run
+
+**Oracle Service**
+- Built automated oracle that creates markets every 30 seconds from 35+ templates
+- Implemented auto-resolution service that resolves expired markets every 5 minutes
+- Randomized initial pool sizes (500-4500 tokens) for realistic market conditions
+- Varied market durations from 1 hour to 6 months
+
+**Linera Integration**
+- Created GraphQL client wrapper for Linera contract operations
+- Implemented hybrid architecture: PostgreSQL for reads, Linera for on-chain verification
+- Async best-effort sync of bets, resolutions, and market creation to Linera
+- Graceful fallback when Linera service is unavailable
 
 **Integration & Auth**
 - Connected frontend to backend with real-time polling
@@ -112,9 +134,9 @@ This enables new use cases: live in-play betting, micro-markets resolving in min
 - Added balance management and transaction flow
 
 **Testing & Documentation**
-- End-to-end testing of complete betting flow
+- End-to-end testing of complete betting flow with PostgreSQL
+- Verified backend compilation and database schema
 - Created comprehensive documentation and demo guides
-- Prepared smart contract scaffolding for future Linera integration
 
 ## What we learned
 

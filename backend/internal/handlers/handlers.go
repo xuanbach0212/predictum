@@ -2,25 +2,56 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/linera-prediction-market/backend/internal/models"
 	"github.com/linera-prediction-market/backend/internal/storage"
 )
 
-type Handler struct {
-	storage *storage.Storage
+// StorageInterface defines the methods required for storage operations
+type StorageInterface interface {
+	GetMarkets() ([]*models.Market, error)
+	GetMarket(id int) (*models.Market, error)
+	SaveMarket(market *models.Market) error
+	UpdateMarket(market *models.Market) error
+	GetPositions() ([]*models.UserPosition, error)
+	GetPosition(marketID int) (*models.UserPosition, error)
+	SavePosition(position *models.UserPosition) error
+	GetBalance() (float64, error)
+	UpdateBalance(amount float64) error
 }
 
-func New(s *storage.Storage) *Handler {
-	return &Handler{storage: s}
+// LineraClient defines the interface for Linera contract operations
+type LineraClient interface {
+	IsEnabled() bool
+	PlaceBet(marketID int, outcome string, amount int) error
+	ResolveMarket(marketID int, outcome string) error
+	CreateMarket(question string, category string, endTime time.Time) error
+}
+
+type Handler struct {
+	storage      StorageInterface
+	lineraClient LineraClient
+}
+
+func New(s StorageInterface, l LineraClient) *Handler {
+	return &Handler{
+		storage:      s,
+		lineraClient: l,
+	}
 }
 
 func (h *Handler) GetMarkets(w http.ResponseWriter, r *http.Request) {
-	markets := h.storage.GetMarkets()
+	markets, err := h.storage.GetMarkets()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch markets")
+		return
+	}
 	respondJSON(w, http.StatusOK, markets)
 }
 
@@ -32,8 +63,12 @@ func (h *Handler) GetMarket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	market, ok := h.storage.GetMarket(id)
-	if !ok {
+	market, err := h.storage.GetMarket(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch market")
+		return
+	}
+	if market == nil {
 		respondError(w, http.StatusNotFound, "Market not found")
 		return
 	}
@@ -42,12 +77,20 @@ func (h *Handler) GetMarket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetPositions(w http.ResponseWriter, r *http.Request) {
-	positions := h.storage.GetPositions()
+	positions, err := h.storage.GetPositions()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch positions")
+		return
+	}
 	respondJSON(w, http.StatusOK, positions)
 }
 
 func (h *Handler) GetBalance(w http.ResponseWriter, r *http.Request) {
-	balance := h.storage.GetBalance()
+	balance, err := h.storage.GetBalance()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch balance")
+		return
+	}
 	respondJSON(w, http.StatusOK, map[string]float64{"balance": balance})
 }
 
@@ -58,8 +101,12 @@ func (h *Handler) PlaceBet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	market, ok := h.storage.GetMarket(req.MarketID)
-	if !ok {
+	market, err := h.storage.GetMarket(req.MarketID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch market")
+		return
+	}
+	if market == nil {
 		respondError(w, http.StatusNotFound, "Market not found")
 		return
 	}
@@ -69,7 +116,11 @@ func (h *Handler) PlaceBet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	balance := h.storage.GetBalance()
+	balance, err := h.storage.GetBalance()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch balance")
+		return
+	}
 	if req.Amount > balance {
 		respondError(w, http.StatusBadRequest, "Insufficient balance")
 		return
@@ -82,37 +133,74 @@ func (h *Handler) PlaceBet(w http.ResponseWriter, r *http.Request) {
 		market.TotalYesShares += shares
 
 		// Update or create position
-		position := h.storage.GetPosition(req.MarketID)
+		position, err := h.storage.GetPosition(req.MarketID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to fetch position")
+			return
+		}
 		if position == nil {
 			position = &models.UserPosition{
 				MarketID: req.MarketID,
 			}
-			h.storage.Positions = append(h.storage.Positions, position)
 		}
 		position.YesShares += shares
 		position.YesAmount += req.Amount
+		
+		if err := h.storage.SavePosition(position); err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to save position")
+			return
+		}
 	} else {
 		shares := storage.CalculateShares(market.NoPool, market.TotalNoShares, req.Amount)
 		market.NoPool += req.Amount
 		market.TotalNoShares += shares
 
-		position := h.storage.GetPosition(req.MarketID)
+		position, err := h.storage.GetPosition(req.MarketID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to fetch position")
+			return
+		}
 		if position == nil {
 			position = &models.UserPosition{
 				MarketID: req.MarketID,
 			}
-			h.storage.Positions = append(h.storage.Positions, position)
 		}
 		position.NoShares += shares
 		position.NoAmount += req.Amount
+		
+		if err := h.storage.SavePosition(position); err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to save position")
+			return
+		}
 	}
 
-	h.storage.UpdateBalance(-req.Amount)
+	if err := h.storage.UpdateMarket(market); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to update market")
+		return
+	}
 
+	if err := h.storage.UpdateBalance(-req.Amount); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to update balance")
+		return
+	}
+
+	// Sync to Linera contract (async, best-effort)
+	if h.lineraClient.IsEnabled() {
+		go func() {
+			outcomeStr := string(req.Outcome)
+			if err := h.lineraClient.PlaceBet(req.MarketID, outcomeStr, int(req.Amount)); err != nil {
+				log.Printf("⚠️  Failed to sync bet to Linera: %v", err)
+			} else {
+				log.Printf("✅ Synced bet to Linera: market #%d, %s, %.0f tokens", req.MarketID, outcomeStr, req.Amount)
+			}
+		}()
+	}
+
+	balance, _ = h.storage.GetBalance()
 	respondJSON(w, http.StatusOK, models.BetResponse{
 		Success: true,
 		Market:  market,
-		Balance: h.storage.GetBalance(),
+		Balance: balance,
 	})
 }
 
@@ -130,14 +218,35 @@ func (h *Handler) ResolveMarket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	market, ok := h.storage.GetMarket(id)
-	if !ok {
+	market, err := h.storage.GetMarket(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch market")
+		return
+	}
+	if market == nil {
 		respondError(w, http.StatusNotFound, "Market not found")
 		return
 	}
 
 	market.Status = models.StatusResolved
 	market.WinningOutcome = &req.Outcome
+
+	if err := h.storage.UpdateMarket(market); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to update market")
+		return
+	}
+
+	// Sync to Linera contract (async, best-effort)
+	if h.lineraClient.IsEnabled() {
+		go func() {
+			outcomeStr := string(req.Outcome)
+			if err := h.lineraClient.ResolveMarket(id, outcomeStr); err != nil {
+				log.Printf("⚠️  Failed to sync market resolution to Linera: %v", err)
+			} else {
+				log.Printf("✅ Synced market resolution to Linera: market #%d → %s", id, outcomeStr)
+			}
+		}()
+	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
@@ -153,13 +262,21 @@ func (h *Handler) ClaimWinnings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	market, ok := h.storage.GetMarket(marketID)
-	if !ok {
+	market, err := h.storage.GetMarket(marketID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch market")
+		return
+	}
+	if market == nil {
 		respondError(w, http.StatusNotFound, "Market not found")
 		return
 	}
 
-	position := h.storage.GetPosition(marketID)
+	position, err := h.storage.GetPosition(marketID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch position")
+		return
+	}
 	if position == nil {
 		respondError(w, http.StatusNotFound, "Position not found")
 		return
@@ -191,12 +308,21 @@ func (h *Handler) ClaimWinnings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	position.Claimed = true
-	h.storage.UpdateBalance(payout)
+	if err := h.storage.SavePosition(position); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to save position")
+		return
+	}
 
+	if err := h.storage.UpdateBalance(payout); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to update balance")
+		return
+	}
+
+	balance, _ := h.storage.GetBalance()
 	respondJSON(w, http.StatusOK, models.ClaimResponse{
 		Success: true,
 		Payout:  payout,
-		Balance: h.storage.GetBalance(),
+		Balance: balance,
 	})
 }
 
@@ -208,5 +334,54 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 
 func respondError(w http.ResponseWriter, status int, message string) {
 	respondJSON(w, status, models.ErrorResponse{Error: message})
+}
+
+func (h *Handler) CreateMarket(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Question string `json:"question"`
+		Category string `json:"category"`
+		EndTime  string `json:"endTime"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	endTime, err := time.Parse(time.RFC3339, req.EndTime)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid end time format")
+		return
+	}
+
+	market := &models.Market{
+		Question:       req.Question,
+		Category:       req.Category,
+		Status:         models.StatusActive,
+		EndTime:        endTime,
+		YesPool:        0,
+		NoPool:         0,
+		TotalYesShares: 0,
+		TotalNoShares:  0,
+		CreatedAt:      time.Now(),
+	}
+
+	if err := h.storage.SaveMarket(market); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to create market")
+		return
+	}
+
+	// Sync to Linera contract (async, best-effort)
+	if h.lineraClient.IsEnabled() {
+		go func() {
+			if err := h.lineraClient.CreateMarket(market.Question, market.Category, market.EndTime); err != nil {
+				log.Printf("⚠️  Failed to sync market creation to Linera: %v", err)
+			} else {
+				log.Printf("✅ Synced market creation to Linera: %s", market.Question)
+			}
+		}()
+	}
+
+	respondJSON(w, http.StatusCreated, market)
 }
 

@@ -18,21 +18,21 @@ type Storage struct {
 }
 
 func New() *Storage {
-	no := models.OutcomeNo
+	now := time.Now()
 
 	return &Storage{
 		Markets: map[int]*models.Market{
 			1: {
 				ID:             1,
-				Question:       "Will Manchester United beat Arsenal in the Premier League match?",
+				Question:       "Will Manchester City win the Premier League 2025-26?",
 				Category:       "Sports",
 				Status:         models.StatusActive,
-				EndTime:        time.Date(2025, 11, 15, 20, 0, 0, 0, time.UTC),
+				EndTime:        time.Date(2026, 5, 23, 20, 0, 0, 0, time.UTC),
 				YesPool:        1250,
 				NoPool:         850,
 				TotalYesShares: 1250000,
 				TotalNoShares:  850000,
-				CreatedAt:      time.Date(2025, 10, 20, 10, 0, 0, 0, time.UTC),
+				CreatedAt:      now.Add(-24 * time.Hour),
 			},
 			2: {
 				ID:             2,
@@ -44,23 +44,23 @@ func New() *Storage {
 				NoPool:         2100,
 				TotalYesShares: 3400000,
 				TotalNoShares:  2100000,
-				CreatedAt:      time.Date(2025, 10, 15, 8, 0, 0, 0, time.UTC),
+				CreatedAt:      now.Add(-48 * time.Hour),
 			},
 			3: {
 				ID:             3,
-				Question:       "Will Lakers win the NBA Championship 2025?",
+				Question:       "Will Lakers make it to NBA playoffs this season?",
 				Category:       "Sports",
 				Status:         models.StatusActive,
-				EndTime:        time.Date(2025, 6, 30, 23, 59, 59, 0, time.UTC),
+				EndTime:        time.Date(2026, 4, 15, 23, 59, 59, 0, time.UTC),
 				YesPool:        890,
 				NoPool:         1560,
 				TotalYesShares: 890000,
 				TotalNoShares:  1560000,
-				CreatedAt:      time.Date(2025, 10, 18, 14, 0, 0, 0, time.UTC),
+				CreatedAt:      now.Add(-36 * time.Hour),
 			},
 			4: {
 				ID:             4,
-				Question:       "Will Ethereum price be above $5,000 by end of November?",
+				Question:       "Will Ethereum price be above $5,000 by end of November 2025?",
 				Category:       "Crypto",
 				Status:         models.StatusActive,
 				EndTime:        time.Date(2025, 11, 30, 23, 59, 59, 0, time.UTC),
@@ -68,32 +68,32 @@ func New() *Storage {
 				NoPool:         1800,
 				TotalYesShares: 2200000,
 				TotalNoShares:  1800000,
-				CreatedAt:      time.Date(2025, 10, 22, 9, 0, 0, 0, time.UTC),
+				CreatedAt:      now.Add(-12 * time.Hour),
 			},
 			5: {
 				ID:             5,
-				Question:       "Will Real Madrid advance to Champions League Final?",
+				Question:       "Will Real Madrid win their next La Liga match?",
 				Category:       "Sports",
-				Status:         models.StatusLocked,
-				EndTime:        time.Date(2025, 10, 28, 20, 0, 0, 0, time.UTC),
+				Status:         models.StatusActive,
+				EndTime:        now.Add(72 * time.Hour), // 3 days from now
 				YesPool:        1800,
 				NoPool:         900,
 				TotalYesShares: 1800000,
 				TotalNoShares:  900000,
-				CreatedAt:      time.Date(2025, 10, 10, 11, 0, 0, 0, time.UTC),
+				CreatedAt:      now.Add(-6 * time.Hour),
 			},
 			6: {
 				ID:              6,
-				Question:        "Will Solana reach $200 by end of October?",
+				Question:        "Will Bitcoin price be above $95,000 in 48 hours?",
 				Category:        "Crypto",
-				Status:          models.StatusResolved,
-				EndTime:         time.Date(2025, 10, 31, 23, 59, 59, 0, time.UTC),
+				Status:          models.StatusActive,
+				EndTime:         now.Add(48 * time.Hour), // 2 days from now
 				YesPool:         1500,
 				NoPool:          2500,
 				TotalYesShares:  1500000,
 				TotalNoShares:   2500000,
-				WinningOutcome:  &no,
-				CreatedAt:       time.Date(2025, 10, 1, 10, 0, 0, 0, time.UTC),
+				WinningOutcome:  nil,
+				CreatedAt:       now.Add(-3 * time.Hour),
 			},
 		},
 		Positions: []*models.UserPosition{
