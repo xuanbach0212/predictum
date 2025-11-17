@@ -5,10 +5,13 @@ import MarketCard from '../components/MarketCard';
 import SkeletonCard from '../components/SkeletonCard';
 import type { Market, MarketCategory, MarketStatus } from '../types';
 
+type SortOption = 'newest' | 'ending-soon' | 'popular' | 'alphabetical';
+
 const Home = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<MarketStatus | 'All'>('All');
   const [categoryFilter, setCategoryFilter] = useState<MarketCategory | 'All'>('All');
+  const [sortBy, setSortBy] = useState<SortOption>('ending-soon');
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,11 +32,28 @@ const Home = () => {
     }
   };
 
-  const filteredMarkets = markets.filter((market) => {
-    if (statusFilter !== 'All' && market.status !== statusFilter) return false;
-    if (categoryFilter !== 'All' && market.category !== categoryFilter) return false;
-    return true;
-  });
+  const filteredMarkets = markets
+    .filter((market) => {
+      if (statusFilter !== 'All' && market.status !== statusFilter) return false;
+      if (categoryFilter !== 'All' && market.category !== categoryFilter) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'ending-soon':
+          return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
+        case 'popular':
+          const volumeA = a.yesPool + a.noPool;
+          const volumeB = b.yesPool + b.noPool;
+          return volumeB - volumeA;
+        case 'alphabetical':
+          return a.question.localeCompare(b.question);
+        default:
+          return 0;
+      }
+    });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50">
@@ -94,9 +114,9 @@ const Home = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" id="markets-section">
 
-        {/* Filters */}
+        {/* Filters & Sort */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Status Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -139,6 +159,24 @@ const Home = () => {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Sort By */}
+            <div>
+              <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-2">
+                Sort By
+              </label>
+              <select
+                id="sortBy"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="block w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                <option value="newest">🆕 Newest First</option>
+                <option value="ending-soon">⏰ Ending Soon</option>
+                <option value="popular">🔥 Most Popular</option>
+                <option value="alphabetical">🔤 A-Z</option>
+              </select>
             </div>
           </div>
         </div>
