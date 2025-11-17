@@ -165,6 +165,8 @@ This enables new use cases: live in-play betting, micro-markets resolving in min
 
 ## 🚀 Try It
 
+### Option 1: Full UI Demo (Mock Data)
+
 ```bash
 # Terminal 1 - Backend
 cd backend && go run cmd/server/main.go
@@ -176,6 +178,23 @@ cd frontend && npm install && npm run dev
 ```
 
 **Demo:** Connect wallet → Browse markets → Bet 100 tokens → Track in "My Bets" → Claim winnings
+
+### Option 2: Query On-Chain Data (Testnet Conway)
+
+```bash
+# Start Linera GraphQL service
+linera service --port 8080
+
+# Open GraphiQL IDE
+open http://localhost:8080
+
+# Query markets from deployed contract
+curl -X POST "http://localhost:8080/chains/10c453e40426ef2bdbe6d9ddf0164c04e24fbb9d5695c26f65df24c5d852d9f0/applications/3910a3b9f7f92fb9c47d9d460a26b4d7819c0a7f01a9cefbe5f575c4e74b6a76" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ marketCount }"}'
+```
+
+**Status**: ✅ Contract deployed, GraphQL queries working, operations require integration layer (see `CONTRACT_TESTING_STATUS.md`)
 
 ---
 
