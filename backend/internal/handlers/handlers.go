@@ -69,6 +69,87 @@ func (h *Handler) GetMarkets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Update market statuses based on end time
+	now := time.Now()
+	for _, market := range markets {
+		if market.Status == models.StatusActive && market.EndTime.Before(now) {
+			market.Status = models.StatusLocked
+			// Update in storage
+			h.storage.UpdateMarket(market)
+		}
+	}
+	
+	// Filter by status if provided
+	statusFilter := r.URL.Query().Get("status")
+	if statusFilter != "" {
+		var filteredMarkets []*models.Market
+		for _, market := range markets {
+			if string(market.Status) == statusFilter {
+				filteredMarkets = append(filteredMarkets, market)
+			}
+		}
+		markets = filteredMarkets
+	}
+	
+	// Filter by category if provided
+	categoryFilter := r.URL.Query().Get("category")
+	if categoryFilter != "" {
+		var filteredMarkets []*models.Market
+		for _, market := range markets {
+			if string(market.Category) == categoryFilter {
+				filteredMarkets = append(filteredMarkets, market)
+			}
+		}
+		markets = filteredMarkets
+	}
+	
+	// Sort markets
+	sortBy := r.URL.Query().Get("sortBy")
+	if sortBy == "" {
+		sortBy = "ending-soon" // Default sort
+	}
+	
+	switch sortBy {
+	case "newest":
+		// Sort by created_at DESC
+		for i := 0; i < len(markets)-1; i++ {
+			for j := i + 1; j < len(markets); j++ {
+				if markets[i].CreatedAt.Before(markets[j].CreatedAt) {
+					markets[i], markets[j] = markets[j], markets[i]
+				}
+			}
+		}
+	case "ending-soon":
+		// Sort by end_time ASC
+		for i := 0; i < len(markets)-1; i++ {
+			for j := i + 1; j < len(markets); j++ {
+				if markets[i].EndTime.After(markets[j].EndTime) {
+					markets[i], markets[j] = markets[j], markets[i]
+				}
+			}
+		}
+	case "popular":
+		// Sort by total volume DESC
+		for i := 0; i < len(markets)-1; i++ {
+			for j := i + 1; j < len(markets); j++ {
+				volumeI := markets[i].YesPool + markets[i].NoPool
+				volumeJ := markets[j].YesPool + markets[j].NoPool
+				if volumeI < volumeJ {
+					markets[i], markets[j] = markets[j], markets[i]
+				}
+			}
+		}
+	case "alphabetical":
+		// Sort by question ASC
+		for i := 0; i < len(markets)-1; i++ {
+			for j := i + 1; j < len(markets); j++ {
+				if markets[i].Question > markets[j].Question {
+					markets[i], markets[j] = markets[j], markets[i]
+				}
+			}
+		}
+	}
+	
 	// Calculate pagination
 	total := len(markets)
 	start := (page - 1) * limit

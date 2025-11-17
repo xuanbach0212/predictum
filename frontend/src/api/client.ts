@@ -2,8 +2,29 @@ const API_BASE = "http://localhost:3001/api";
 
 export const api = {
   // Get all markets with pagination
-  async getMarkets(page: number = 1, limit: number = 20) {
-    const res = await fetch(`${API_BASE}/markets?page=${page}&limit=${limit}`);
+  async getMarkets(
+    page: number = 1, 
+    limit: number = 20,
+    status?: string,
+    category?: string,
+    sortBy?: string
+  ) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    
+    if (status && status !== 'All') {
+      params.append('status', status);
+    }
+    if (category && category !== 'All') {
+      params.append('category', category);
+    }
+    if (sortBy) {
+      params.append('sortBy', sortBy);
+    }
+    
+    const res = await fetch(`${API_BASE}/markets?${params.toString()}`);
     const data = await res.json();
     return {
       markets: data.markets.map((m: any) => ({

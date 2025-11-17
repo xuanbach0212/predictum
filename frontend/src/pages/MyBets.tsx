@@ -17,10 +17,12 @@ const MyBets = () => {
 
   const loadPositions = async () => {
     try {
-      const [markets, positions] = await Promise.all([
-        api.getMarkets(),
+      const [marketsResponse, positions] = await Promise.all([
+        api.getMarkets(1, 100), // Get more markets to ensure we have all
         api.getPositions(),
       ]);
+      
+      const markets = marketsResponse.markets; // Extract markets array from response
       
       const withMarkets = positions.map((position: UserPosition) => {
         const market = markets.find((m: Market) => m.id === position.marketId);
@@ -30,6 +32,7 @@ const MyBets = () => {
       setUserMarketsWithPositions(withMarkets);
     } catch (error) {
       console.error('Failed to load positions:', error);
+      toast.error('Failed to load your bets');
     } finally {
       setLoading(false);
     }

@@ -1,12 +1,15 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::env;
+use std::path::PathBuf;
+use std::process::Command;
+use std::fs;
 
-// Placeholder for Linera client
-// In a real implementation, this would use linera-sdk to interact with the chain
+// Real Linera client using CLI for operations
 pub struct LineraClient {
     chain_id: String,
     app_id: String,
     mock_mode: bool,
+    wallet_path: Option<PathBuf>,
 }
 
 impl LineraClient {
@@ -20,11 +23,38 @@ impl LineraClient {
         log::info!("Initializing Linera client for chain: {}", chain_id);
         log::info!("Application ID: {}", app_id);
         
+        // Try to find wallet path
+        let wallet_path = Self::find_wallet_path();
+        if let Some(ref path) = wallet_path {
+            log::info!("Found wallet at: {:?}", path);
+        } else {
+            log::warn!("No wallet found, will use mock mode");
+        }
+        
         Ok(Self {
             chain_id,
             app_id,
-            mock_mode: false,
+            mock_mode: wallet_path.is_none(),
+            wallet_path,
         })
+    }
+    
+    fn find_wallet_path() -> Option<PathBuf> {
+        // Try common wallet locations
+        let home = dirs::home_dir()?;
+        
+        let candidates = vec![
+            home.join(".config/linera/wallet.json"),
+            home.join("Library/Application Support/linera/wallet.json"),
+        ];
+        
+        for path in candidates {
+            if path.exists() {
+                return Some(path);
+            }
+        }
+        
+        None
     }
     
     pub fn mock() -> Self {
@@ -33,6 +63,7 @@ impl LineraClient {
             chain_id: String::new(),
             app_id: String::new(),
             mock_mode: true,
+            wallet_path: None,
         }
     }
     
@@ -125,19 +156,59 @@ impl LineraClient {
     ) -> Result<()> {
         log::info!("Submitting operation: {} with params: {}", operation_type, params);
         
-        // TODO: Real implementation would:
-        // 1. Use linera-sdk to load chain client
-        // 2. Create and sign operation
-        // 3. Submit to validators
-        // 4. Wait for block inclusion
-        // 5. Return confirmation
+        if self.mock_mode {
+            log::warn!("Mock mode: Would submit to chain: {}", self.chain_id);
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            return Ok(());
+        }
         
-        // For now, log that we would submit this
-        log::info!("Would submit to chain: {}", self.chain_id);
-        log::info!("Application: {}", self.app_id);
+        // Create GraphQL mutation to submit operation
+        let operation = serde_json::json!({
+            operation_type: params
+        });
         
-        // Simulate network delay
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        let mutation = format!(
+            r#"mutation {{ execute(operation: {}) }}"#,
+            serde_json::to_string(&operation)?
+        );
+        
+        log::info!("📝 GraphQL mutation created");
+        log::info!("🔗 Submitting to chain: {}", self.chain_id);
+        log::info!("📱 Application: {}", self.app_id);
+        
+        // Submit via GraphQL to Linera service
+        let graphql_url = format!(
+            "http://localhost:8080/chains/{}/applications/{}",
+            self.chain_id, self.app_id
+        );
+        
+        let client = reqwest::Client::new();
+        let response = client
+            .post(&graphql_url)
+            .json(&serde_json::json!({
+                "query": mutation
+            }))
+            .send()
+            .await
+            .context("Failed to send GraphQL request")?;
+        
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            log::error!("❌ GraphQL request failed ({}): {}", status, body);
+            return Err(anyhow::anyhow!("Failed to submit operation: HTTP {}", status));
+        }
+        
+        let result: serde_json::Value = response.json().await
+            .context("Failed to parse GraphQL response")?;
+        
+        if let Some(errors) = result.get("errors") {
+            log::error!("❌ GraphQL errors: {}", errors);
+            return Err(anyhow::anyhow!("GraphQL errors: {}", errors));
+        }
+        
+        log::info!("✅ Operation submitted successfully to blockchain!");
+        log::debug!("Response: {}", result);
         
         Ok(())
     }

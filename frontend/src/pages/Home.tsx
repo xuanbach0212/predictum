@@ -10,7 +10,7 @@ type SortOption = 'newest' | 'ending-soon' | 'popular' | 'alphabetical';
 
 const Home = () => {
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState<MarketStatus | 'All'>('All');
+  const [statusFilter, setStatusFilter] = useState<MarketStatus | 'All'>('Active');
   const [categoryFilter, setCategoryFilter] = useState<MarketCategory | 'All'>('All');
   const [sortBy, setSortBy] = useState<SortOption>('ending-soon');
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -22,13 +22,19 @@ const Home = () => {
 
   useEffect(() => {
     loadMarkets();
-  }, [currentPage]);
+  }, [currentPage, statusFilter, categoryFilter, sortBy]);
 
   const loadMarkets = async () => {
     try {
       setLoading(true);
-      console.log(`Loading markets page ${currentPage}...`);
-      const { markets: data, pagination } = await api.getMarkets(currentPage, marketsPerPage);
+      console.log(`Loading markets page ${currentPage} with filters:`, { statusFilter, categoryFilter, sortBy });
+      const { markets: data, pagination } = await api.getMarkets(
+        currentPage, 
+        marketsPerPage,
+        statusFilter,
+        categoryFilter,
+        sortBy
+      );
       console.log('Markets loaded:', data.length, 'markets');
       setMarkets(data);
       setTotalPages(pagination.totalPages);
@@ -41,28 +47,8 @@ const Home = () => {
     }
   };
 
-  const filteredMarkets = markets
-    .filter((market) => {
-      if (statusFilter !== 'All' && market.status !== statusFilter) return false;
-      if (categoryFilter !== 'All' && market.category !== categoryFilter) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case 'ending-soon':
-          return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
-        case 'popular':
-          const volumeA = a.yesPool + a.noPool;
-          const volumeB = b.yesPool + b.noPool;
-          return volumeB - volumeA;
-        case 'alphabetical':
-          return a.question.localeCompare(b.question);
-        default:
-          return 0;
-      }
-    });
+  // Backend now handles filtering and sorting
+  const filteredMarkets = markets;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50">
@@ -123,20 +109,18 @@ const Home = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" id="markets-section">
 
-        {/* Filters & Sort */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 border border-gray-200">
-          <div className="grid grid-cols-1 gap-6">
+        {/* Filters & Sort - Compact */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-200">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
             {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-600 mb-2">Status</label>
               <div className="flex flex-wrap gap-2">
                 {['All', 'Active', 'Locked', 'Resolved'].map((status) => (
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status as MarketStatus | 'All')}
-                    className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                       statusFilter === status
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -149,16 +133,14 @@ const Home = () => {
             </div>
 
             {/* Category Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
-              </label>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-600 mb-2">Category</label>
               <div className="flex flex-wrap gap-2">
                 {['All', 'Sports', 'Crypto', 'Binary'].map((category) => (
                   <button
                     key={category}
                     onClick={() => setCategoryFilter(category as MarketCategory | 'All')}
-                    className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                       categoryFilter === category
                         ? 'bg-purple-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -171,18 +153,18 @@ const Home = () => {
             </div>
 
             {/* Sort By */}
-            <div>
-              <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="flex-1">
+              <label htmlFor="sortBy" className="block text-xs font-medium text-gray-600 mb-2">
                 Sort By
               </label>
               <select
                 id="sortBy"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="block w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-h-[44px]"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               >
-                <option value="newest">🆕 Newest First</option>
                 <option value="ending-soon">⏰ Ending Soon</option>
+                <option value="newest">🆕 Newest First</option>
                 <option value="popular">🔥 Most Popular</option>
                 <option value="alphabetical">🔤 A-Z</option>
               </select>
