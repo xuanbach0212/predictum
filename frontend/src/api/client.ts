@@ -1,15 +1,18 @@
 const API_BASE = "http://localhost:3001/api";
 
 export const api = {
-  // Get all markets
-  async getMarkets() {
-    const res = await fetch(`${API_BASE}/markets`);
+  // Get all markets with pagination
+  async getMarkets(page: number = 1, limit: number = 20) {
+    const res = await fetch(`${API_BASE}/markets?page=${page}&limit=${limit}`);
     const data = await res.json();
-    return data.map((m: any) => ({
-      ...m,
-      endTime: new Date(m.endTime),
-      createdAt: new Date(m.createdAt),
-    }));
+    return {
+      markets: data.markets.map((m: any) => ({
+        ...m,
+        endTime: new Date(m.endTime),
+        createdAt: new Date(m.createdAt),
+      })),
+      pagination: data.pagination,
+    };
   },
 
   // Get single market

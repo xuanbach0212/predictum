@@ -47,12 +47,61 @@ func New(s StorageInterface, l LineraClient) *Handler {
 }
 
 func (h *Handler) GetMarkets(w http.ResponseWriter, r *http.Request) {
+	// Get pagination parameters
+	page := 1
+	limit := 20 // Default 20 markets per page
+	
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+	
 	markets, err := h.storage.GetMarkets()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to fetch markets")
 		return
 	}
-	respondJSON(w, http.StatusOK, markets)
+	
+	// Calculate pagination
+	total := len(markets)
+	start := (page - 1) * limit
+	end := start + limit
+	
+	if start >= total {
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"markets": []models.Market{},
+			"pagination": map[string]interface{}{
+				"page":       page,
+				"limit":      limit,
+				"total":      total,
+				"totalPages": (total + limit - 1) / limit,
+			},
+		})
+		return
+	}
+	
+	if end > total {
+		end = total
+	}
+	
+	paginatedMarkets := markets[start:end]
+	
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"markets": paginatedMarkets,
+		"pagination": map[string]interface{}{
+			"page":       page,
+			"limit":      limit,
+			"total":      total,
+			"totalPages": (total + limit - 1) / limit,
+		},
+	})
 }
 
 func (h *Handler) GetMarket(w http.ResponseWriter, r *http.Request) {

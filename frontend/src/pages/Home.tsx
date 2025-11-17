@@ -14,17 +14,24 @@ const Home = () => {
   const [sortBy, setSortBy] = useState<SortOption>('ending-soon');
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMarkets, setTotalMarkets] = useState(0);
+  const marketsPerPage = 20;
 
   useEffect(() => {
     loadMarkets();
-  }, []);
+  }, [currentPage]);
 
   const loadMarkets = async () => {
     try {
-      console.log('Loading markets from API...');
-      const data = await api.getMarkets();
+      setLoading(true);
+      console.log(`Loading markets page ${currentPage}...`);
+      const { markets: data, pagination } = await api.getMarkets(currentPage, marketsPerPage);
       console.log('Markets loaded:', data.length, 'markets');
       setMarkets(data);
+      setTotalPages(pagination.totalPages);
+      setTotalMarkets(pagination.total);
     } catch (error) {
       console.error('Failed to load markets:', error);
     } finally {
@@ -94,7 +101,7 @@ const Home = () => {
             {/* Live Stats */}
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
-                <div className="text-3xl font-bold mb-1">{markets.length}</div>
+                <div className="text-3xl font-bold mb-1">{totalMarkets}</div>
                 <div className="text-blue-100">Active Markets</div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
@@ -182,13 +189,22 @@ const Home = () => {
         </div>
 
         {/* Section Title */}
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Live Markets
-          </h2>
-          <p className="text-gray-600">
-            {filteredMarkets.length} {filteredMarkets.length === 1 ? 'market' : 'markets'} available
-          </p>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              Live Markets
+            </h2>
+            <p className="text-gray-600">
+              Showing {((currentPage - 1) * marketsPerPage) + 1}-{Math.min(currentPage * marketsPerPage, totalMarkets)} of {totalMarkets} markets
+            </p>
+          </div>
+          
+          {/* Quick Page Navigation */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
+            </div>
+          )}
         </div>
 
             {/* Markets Grid */}
@@ -205,15 +221,115 @@ const Home = () => {
             <p className="text-gray-600">Try adjusting your filters</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredMarkets.map((market) => (
-              <MarketCard
-                key={market.id}
-                market={market}
-                onClick={() => navigate(`/market/${market.id}`)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredMarkets.map((market) => (
+                <MarketCard
+                  key={market.id}
+                  market={market}
+                  onClick={() => navigate(`/market/${market.id}`)}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex justify-center items-center gap-2">
+                {/* Previous Button */}
+                <button
+                  onClick={() => {
+                    setCurrentPage(currentPage - 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-white text-blue-600 hover:bg-blue-50 border border-blue-600'
+                  }`}
+                >
+                  ← Previous
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex gap-2">
+                  {/* First page */}
+                  {currentPage > 3 && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setCurrentPage(1);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="px-4 py-2 rounded-lg font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                      >
+                        1
+                      </button>
+                      {currentPage > 4 && <span className="px-2 py-2 text-gray-400">...</span>}
+                    </>
+                  )}
+
+                  {/* Current page and neighbors */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      return page === currentPage || 
+                             page === currentPage - 1 || 
+                             page === currentPage + 1 ||
+                             (currentPage <= 2 && page <= 3) ||
+                             (currentPage >= totalPages - 1 && page >= totalPages - 2);
+                    })
+                    .map(page => (
+                      <button
+                        key={page}
+                        onClick={() => {
+                          setCurrentPage(page);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                          page === currentPage
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                  {/* Last page */}
+                  {currentPage < totalPages - 2 && (
+                    <>
+                      {currentPage < totalPages - 3 && <span className="px-2 py-2 text-gray-400">...</span>}
+                      <button
+                        onClick={() => {
+                          setCurrentPage(totalPages);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="px-4 py-2 rounded-lg font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={() => {
+                    setCurrentPage(currentPage + 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-white text-blue-600 hover:bg-blue-50 border border-blue-600'
+                  }`}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

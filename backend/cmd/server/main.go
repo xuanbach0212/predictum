@@ -20,7 +20,7 @@ func main() {
 	// Get database URL from environment or use default
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgres://predictum:predictum123@localhost:5432/predictum?sslmode=disable"
+		databaseURL = "postgres://root:root@localhost:5432/predictum?sslmode=disable"
 	}
 
 	// Connect to PostgreSQL
