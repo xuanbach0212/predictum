@@ -13,8 +13,9 @@ createRoot(document.getElementById('root')!).render(
         appearance: {
           theme: 'light',
           accentColor: '#2563eb',
+          logo: 'https://raw.githubusercontent.com/linera-io/linera-protocol/main/linera-views/logo.svg',
         },
-        loginMethods: ['email', 'wallet', 'google'],
+        loginMethods: ['email', 'wallet'],
         embeddedWallets: {
           createOnLogin: 'users-without-wallets',
         },
